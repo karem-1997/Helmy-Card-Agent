@@ -28,26 +28,18 @@
             if(s.exists()) supportNumber = s.data().whatsapp;
         });
 
-        // دالة الدخول والتسجيل
         window.handleAuth = async (type) => {
             try {
                 if(type === 'signup') {
                     const qS = await getDocs(query(collection(db, "agents"), where("agentCode", "==", s_mycode.value)));
-                    if(!qS.empty) return alert("عذراً، هذا الـ ID محجوز لوكيل آخر!");
-                    
+                    if(!qS.empty) return alert("هذا الـ ID محجوز لوكيل آخر!");
                     const r = await createUserWithEmailAndPassword(auth, s_email.value, s_pass.value);
                     await setDoc(doc(db, "agents", r.user.uid), { 
-                        name: s_name.value, 
-                        agentCode: s_mycode.value, 
-                        invitedBy: s_refcode.value, // ربط الوكيل بالداعي
-                        email: s_email.value, 
-                        uid: r.user.uid, 
-                        pass: s_pass.value 
+                        name: s_name.value, agentCode: s_mycode.value, invitedBy: s_refcode.value, 
+                        email: s_email.value, uid: r.user.uid, pass: s_pass.value 
                     });
-                } else { 
-                    await signInWithEmailAndPassword(auth, l_email.value, l_pass.value); 
-                }
-            } catch (e) { alert("تأكد من صحة البيانات أو البريد الإلكتروني."); }
+                } else { await signInWithEmailAndPassword(auth, l_email.value, l_pass.value); }
+            } catch (e) { alert("خطأ في البيانات!"); }
         };
 
         window.logout = () => signOut(auth).then(() => location.reload());
@@ -58,36 +50,30 @@
                 authPanel.classList.add('hidden');
                 infoSection.classList.add('hidden');
                 mainDashboard.classList.remove('hidden');
-                if(user.email === ADMIN_EMAIL) { 
-                    adminTools.classList.remove('hidden');
-                    loadAdminData(); 
-                } else { 
-                    loadUserData(user.uid); 
-                }
+                if(user.email === ADMIN_EMAIL) { adminTools.classList.remove('hidden'); loadAdminData(); } 
+                else { loadUserData(user.uid); }
             }
         });
 
-        // لوحة تحكم المدير (رؤية كل شيء)
+        // لوحة المدير: تعرض كل وكيل والناس اللي سجلت بكوده هو بس
         async function loadAdminData() {
             const sn = await getDocs(collection(db, "agents"));
-            const allAgents = sn.docs.map(d => d.data());
+            const all = sn.docs.map(d => d.data());
             let html = "";
-            
-            allAgents.forEach(agent => {
+            all.forEach(agent => {
                 if(agent.email === ADMIN_EMAIL) return;
-                const myTeam = allAgents.filter(a => a.invitedBy === agent.agentCode);
-                
+                // الفلترة الصحيحة: هات الناس اللي الـ invitedBy بتاعهم يساوي كود الوكيل ده
+                const team = all.filter(a => a.invitedBy === agent.agentCode && a.agentCode !== agent.agentCode);
                 html += `
                 <div class="agent-card">
                     <div class="agent-header">
                         <span>👤 <b>${agent.name}</b> <small>(ID: ${agent.agentCode})</small></span>
-                        <span class="edit-btn" onclick="document.getElementById('edit-${agent.uid}').classList.toggle('active')">تعديل ⚙️</span>
+                        <span style="cursor:pointer; color:#777;" onclick="document.getElementById('edit-${agent.uid}').classList.toggle('active')">تعديل ⚙️</span>
                     </div>
-                    <div class="team-title">فريق هذا الوكيل (${myTeam.length}):</div>
-                    ${myTeam.map(m => `<div class="member-box"><span>${m.name}</span><span>ID: ${m.agentCode}</span></div>`).join('') || '<div class="no-team">لا يوجد أعضاء منضمين</div>'}
-                    
+                    <div class="team-title">الفريق المباشر (${team.length}):</div>
+                    ${team.map(m => `<div class="member-box"><span>${m.name}</span><span>ID: ${m.agentCode}</span></div>`).join('') || '<div class="no-team">لا يوجد فريق حالياً</div>'}
                     <div id="edit-${agent.uid}" class="edit-panel">
-                        <label>الاسم:</label><input type="text" id="n-${agent.uid}" value="${agent.name}">
+                        <label>الاسم الكامل:</label><input type="text" id="n-${agent.uid}" value="${agent.name}">
                         <label>كود الوكيل (ID):</label><input type="text" id="c-${agent.uid}" value="${agent.agentCode}">
                         <label>كود الداعي:</label><input type="text" id="r-${agent.uid}" value="${agent.invitedBy || ''}">
                         <label style="color:red">باسورد جديد:</label><input type="text" id="p-${agent.uid}" placeholder="تغيير اختياري">
@@ -99,36 +85,33 @@
             dashboardContent.innerHTML = html;
         }
 
-        // لوحة تحكم الوكيل (رؤية فريقه فقط)
+        // لوحة الوكيل: تعرض فقط الناس اللي سجلت بكوده
         async function loadUserData(uid) {
             const d = await getDoc(doc(db, "agents", uid));
             if(d.exists()) {
                 const me = d.data();
                 const q = await getDocs(query(collection(db, "agents"), where("invitedBy", "==", me.agentCode)));
+                // نضمن عدم ظهور الوكيل نفسه في فريقه
+                const teamDocs = q.docs.filter(doc => doc.data().agentCode !== me.agentCode);
                 dashboardContent.innerHTML = `
                     <div class="user-id-box"><small>كود دعوتك الخاص</small><div class="big-id">${me.agentCode}</div></div>
-                    <div class="team-title" style="margin-top:20px;">أعضاء فريقك المباشر (${q.size})</div>
-                    ${q.docs.map(m => `<div class="member-box"><span>👤 ${m.data().name}</span><span>ID: ${m.data().agentCode}</span></div>`).join('') || '<p style="text-align:center; opacity:0.5;">لم ينضم أحد لفريقك بعد</p>'}
-                    <a href="https://wa.me/${supportNumber}" class="main-btn" style="background:#25D366; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:10px; margin-top:20px;">دعم الوكلاء (WhatsApp)</a>
+                    <div class="team-title" style="margin-top:20px;">فريقك المباشر (${teamDocs.length})</div>
+                    ${teamDocs.map(m => `<div class="member-box"><span>👤 ${m.data().name}</span><span>ID: ${m.data().agentCode}</span></div>`).join('') || '<p style="text-align:center; opacity:0.5;">لا يوجد أعضاء في فريقك بعد</p>'}
+                    <a href="https://wa.me/${supportNumber}" class="main-btn" style="background:#25D366; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:10px; margin-top:20px;">تواصل مع الدعم الفني ✅</a>
                 `;
             }
         }
 
         window.updateAgentData = async (uid) => {
-            const n = document.getElementById(`n-${uid}`).value, c = document.getElementById(`c-${uid}`).value, 
-                  r = document.getElementById(`r-${uid}`).value, p = document.getElementById(`p-${uid}`).value;
-            let up = { name: n, agentCode: c, invitedBy: r };
+            const up = { name: document.getElementById(`n-${uid}`).value, agentCode: document.getElementById(`c-${uid}`).value, invitedBy: document.getElementById(`r-${uid}`).value };
+            const p = document.getElementById(`p-${uid}`).value;
             if(p.trim() !== "") up.pass = p;
             await updateDoc(doc(db, "agents", uid), up);
-            alert("تم التحديث بنجاح ✅"); loadAdminData();
+            alert("تم الحفظ ✅"); loadAdminData();
         };
 
-        window.delAgent = async (uid) => { if(confirm("حذف نهائي؟")) { await deleteDoc(doc(db, "agents", uid)); loadAdminData(); } };
-        
-        window.updateWA = async () => {
-            await setDoc(doc(db, "settings", "contact"), { whatsapp: new_wa.value }, { merge: true });
-            alert("تم حفظ رقم الواتساب ✅");
-        };
+        window.delAgent = async (uid) => { if(confirm("حذف؟")) { await deleteDoc(doc(db, "agents", uid)); loadAdminData(); } };
+        window.updateWA = async () => { await setDoc(doc(db, "settings", "contact"), { whatsapp: new_wa.value }, { merge: true }); alert("تم الحفظ ✅"); };
     </script>
     <style>
         :root { --red: #ff0000; --glass: rgba(18, 18, 18, 0.98); --border: rgba(255, 255, 255, 0.1); }
@@ -138,31 +121,27 @@
         .main-logo { font-size: 2.8rem; font-weight: 900; text-align: center; color: var(--red); text-shadow: 0 0 20px rgba(255,0,0,0.5); margin: 25px 0; }
         .glass-box { background: var(--glass); border: 1px solid var(--border); border-radius: 25px; padding: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
         input { width: 100%; padding: 14px; background: #050505; border: 1px solid #222; border-radius: 12px; color: #fff; margin-top: 10px; text-align: center; outline: none; }
-        input:focus { border-color: var(--red); }
         .main-btn { width: 100%; padding: 16px; background: linear-gradient(to bottom, #f00, #a00); color: #fff; border: none; border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; }
         .agent-card { background: rgba(255,255,255,0.03); border-radius: 20px; padding: 15px; margin-bottom: 20px; border: 1px solid var(--border); }
         .agent-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; padding-bottom: 10px; }
-        .edit-btn { cursor: pointer; color: #777; font-size: 0.85rem; }
         .team-title { font-size: 0.9rem; color: var(--red); font-weight: bold; margin: 15px 0 10px; }
         .member-box { display: flex; justify-content: space-between; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 10px; margin-bottom: 5px; font-size: 0.85rem; }
         .edit-panel { display: none; padding: 15px; background: #000; border-radius: 15px; margin-top: 15px; }
         .edit-panel.active { display: block; }
-        .save-btn { width: 100%; padding: 12px; background: #f00; color: #fff; border-radius: 10px; border: none; font-weight: bold; margin-top: 15px; cursor: pointer; }
-        .del-btn { width: 100%; padding: 8px; background: none; border: none; color: #e74c3c; margin-top: 10px; cursor: pointer; width: 100%; font-size: 0.8rem; }
+        .save-btn { width: 100%; padding: 12px; background: #f00; color: #fff; border-radius: 10px; margin-top: 15px; cursor: pointer; border: none; }
+        .del-btn { width: 100%; background: none; border: none; color: #e74c3c; margin-top: 10px; cursor: pointer; font-size: 0.8rem; }
         .user-id-box { text-align: center; background: rgba(255,0,0,0.05); padding: 20px; border-radius: 20px; border: 1px dashed var(--red); }
         .big-id { font-size: 3rem; font-weight: 900; color: var(--red); }
         .hidden { display: none !important; }
         .info-section { margin-top: 25px; text-align: center; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .card { background: rgba(255,255,255,0.02); padding: 15px; border-radius: 20px; border: 1px solid var(--border); font-size: 0.8rem; }
+        .card { background: rgba(255,255,255,0.02); padding: 15px; border-radius: 20px; border: 1px solid var(--border); font-size: 0.75rem; }
         .card b { color: var(--red); display: block; margin-bottom: 5px; }
     </style>
 </head>
 <body>
-
 <div class="container">
     <div class="main-logo">HELMY CARD</div>
-
     <div id="authPanel" class="glass-box">
         <div id="loginForm">
             <h2 style="text-align:center; color:var(--red); margin-bottom:25px;">ابدأ رحلتك الآن ⚡</h2>
@@ -171,7 +150,6 @@
             <button class="main-btn" onclick="handleAuth('login')">تسجيل الدخول</button>
             <button style="background:none; border:none; color:#555; width:100%; margin-top:20px; cursor:pointer; font-weight:bold;" onclick="toggleAuthView()">إنشاء حساب جديد</button>
         </div>
-
         <div id="signupForm" class="hidden">
             <h2 style="text-align:center; color:var(--red); margin-bottom:25px;">إنشاء حساب جديد</h2>
             <input type="text" id="s_name" placeholder="الاسم بالكامل">
@@ -183,32 +161,27 @@
             <button style="background:none; border:none; color:#555; width:100%; margin-top:20px; cursor:pointer;" onclick="toggleAuthView()">لديك حساب؟ سجل دخول</button>
         </div>
     </div>
-
     <div id="infoSection" class="info-section">
         <div style="color:var(--red); font-weight:900; font-size:1.1rem;">إمبراطورية الشحن الرقمي الأولى عالمياً ⚡</div>
         <div class="grid">
             <div class="card"><b>كافة الألعاب</b>شحن مباشر لجميع الألعاب العالمية.</div>
             <div class="card"><b>تطبيقات الدردشة</b>رصيد الغرف وبرامج البث المباشر.</div>
             <div class="card"><b>شحن الرصيد</b>تعبئة الرصيد لكافة الشبكات دولياً.</div>
-            <div class="card"><b>خدمات رقمية</b>اشتراكات وبطاقات بأفضل الأسعار.</div>
+            <div class="card"><b>الخدمات الرقمية</b>اشتراكات وبطاقات بأفضل الأسعار.</div>
         </div>
     </div>
-
     <div id="mainDashboard" class="hidden">
         <div class="glass-box">
             <h2 style="text-align:center; color:var(--red); margin-bottom:25px;">غرفة التحكم 🚀</h2>
             <div id="dashboardContent"></div>
-
             <div id="adminTools" class="hidden" style="margin-top:25px; border-top:1px solid #222; padding-top:20px;">
                 <label style="font-size:0.8rem; color:#555; display:block; text-align:right;">رقم واتساب الدعم:</label>
                 <input type="text" id="new_wa" placeholder="الرقم الدولي (2012...)">
                 <button class="save-btn" style="background:#25D366;" onclick="updateWA()">حفظ رقم الواتساب</button>
             </div>
-
             <button class="main-btn" style="background:#000; border:1px solid #222; margin-top:35px;" onclick="logout()">خروج آمن</button>
         </div>
     </div>
 </div>
-
 </body>
 </html>
