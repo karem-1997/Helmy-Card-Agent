@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HELMY CARD | GLOBAL EMPIRE</title>
+    <title>HELMY CARD | THE EMPIRE</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -23,14 +23,9 @@
         const db = getFirestore(app);
         const ADMIN = "helmy@helmy.com";
 
-        // --- مراقبة رقم الواتساب ---
         let supportNumber = "";
         onSnapshot(doc(db, "settings", "contact"), (s) => {
-            if(s.exists()) {
-                supportNumber = s.data().whatsapp;
-                const btn = document.getElementById('wa-btn');
-                if(btn) btn.href = `https://wa.me/${supportNumber}`;
-            }
+            if(s.exists()) supportNumber = s.data().whatsapp;
         });
 
         window.handleAuth = async (t) => {
@@ -57,11 +52,10 @@
             }
         });
 
-        // --- تحديث رقم الواتساب (للمدير فقط) ---
         window.updateWA = async () => {
             const num = document.getElementById('new-wa').value;
             await setDoc(doc(db, "settings", "contact"), { whatsapp: num }, { merge: true });
-            alert("تم تحديث رقم خدمة العملاء ✅");
+            alert("تم تحديث الرقم ✅");
         };
 
         async function loadAdmin() {
@@ -81,9 +75,8 @@
                         <label>الاسم:</label><input type="text" id="n-${a.uid}" value="${a.name}">
                         <label>كود الوكيل:</label><input type="text" id="c-${a.uid}" value="${a.agentCode}">
                         <label>كود الداعي:</label><input type="text" id="r-${a.uid}" value="${a.invitedBy || ''}">
-                        <label>تغيير الباسورد:</label><input type="password" id="p-${a.uid}" placeholder="كلمة مرور جديدة">
-                        <button class="save-btn" onclick="window.updateAgentData('${a.uid}')">حفظ</button>
-                        <button class="del-btn" onclick="window.delAgent('${a.uid}')">حذف</button>
+                        <button class="save-btn" onclick="window.updateAgentData('${a.uid}')">حفظ التغييرات</button>
+                        <button class="del-btn" onclick="window.delAgent('${a.uid}')">حذف الوكيل</button>
                     </div>
                 </div>`;
             });
@@ -93,7 +86,7 @@
         window.updateAgentData = async (u) => {
             const n = document.getElementById(`n-${u}`).value, c = document.getElementById(`c-${u}`).value, r = document.getElementById(`r-${u}`).value;
             await updateDoc(doc(db, "agents", u), { name: n, agentCode: c, invitedBy: r });
-            alert("تم التعديل ✅"); loadAdmin();
+            alert("تم الحفظ ✅"); loadAdmin();
         };
 
         window.delAgent = async (u) => { if(confirm("حذف؟")) { await deleteDoc(doc(db, "agents", u)); loadAdmin(); } };
@@ -105,70 +98,69 @@
                 const q = await getDocs(query(collection(db, "agents"), where("invitedBy", "==", a.agentCode)));
                 dashTitle.innerText = "لوحة التحكم العالمية";
                 dashboardContent.innerHTML = `
-                    <div class="user-id-box"><small>كودك الخاص للانتشار</small><div class="big-id">${a.agentCode}</div></div>
-                    <div class="team-title" style="margin-top:25px;">أعضاء فريقك حول العالم (${q.size})</div>
-                    ${q.docs.map(m => `<div class="member-box"><span>👤 ${m.data().name}</span><span class="id-text">ID: ${m.data().agentCode}</span></div>`).join('') || '<p>في انتظار انضمام فريقك...</p>'}
-                    <a id="wa-btn" href="https://wa.me/${supportNumber}" class="main-btn" style="background:#25D366; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:10px; margin-top:20px;">تواصل مع الدعم الفني ✅</a>
+                    <div class="user-id-box"><small>كود الانتشار الخاص بك</small><div class="big-id">${a.agentCode}</div></div>
+                    <div class="team-title" style="margin-top:20px;">فريقك المنضم (${q.size})</div>
+                    ${q.docs.map(m => `<div class="member-box"><span>👤 ${m.data().name}</span><span class="id-text">ID: ${m.data().agentCode}</span></div>`).join('') || '<p>لا يوجد منضمين حالياً</p>'}
+                    <a href="https://wa.me/${supportNumber}" class="main-btn" style="background:#25D366; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:10px;">دعم الوكلاء (WhatsApp)</a>
                 `;
             }
         }
     </script>
     <style>
-        :root { --red: #ff2a2a; --glass: rgba(10, 10, 10, 0.92); --border: rgba(255, 255, 255, 0.1); }
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        :root { --red: #ff0000; --glass: rgba(15, 15, 15, 0.94); --border: rgba(255, 255, 255, 0.1); }
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { 
-            background: radial-gradient(circle at top right, #200000 0%, #000 100%);
-            background-attachment: fixed; color: #fff; margin: 0; padding: 20px;
+            background: radial-gradient(circle at top, #2b0000 0%, #000 100%);
+            background-attachment: fixed; color: #fff; margin: 0; padding: 15px;
             display: flex; justify-content: center; min-height: 100vh;
         }
-        .container { width: 100%; max-width: 480px; }
+        .container { width: 100%; max-width: 440px; }
+        
+        /* ضبط الاسم بجانب بعضه في سطر واحد */
         .main-logo { 
-            font-size: 3.5rem; font-weight: 900; text-align: center; color: var(--red); 
-            text-shadow: 0 0 25px rgba(255, 42, 42, 0.5); margin-bottom: 20px; letter-spacing: -2px;
+            font-size: 2.8rem; font-weight: 900; text-align: center; color: var(--red); 
+            text-shadow: 0 0 20px rgba(255, 0, 0, 0.5); margin: 25px 0; 
+            white-space: nowrap; display: block; width: 100%;
         }
+
         .glass-box { 
-            background: var(--glass); backdrop-filter: blur(25px); border: 1px solid var(--border);
-            border-radius: 40px; padding: 30px; box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+            background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--border);
+            border-radius: 30px; padding: 25px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);
         }
-        .inner-logo { font-size: 2.2rem; font-weight: 900; color: var(--red); text-align: center; margin-bottom: 25px; text-shadow: 0 0 15px rgba(255,0,0,0.3); }
-        
+
         input { 
-            width: 100%; padding: 18px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); 
-            border-radius: 20px; color: #fff; margin-top: 12px; outline: none; transition: 0.3s;
+            width: 100%; padding: 15px; background: rgba(0,0,0,0.5); border: 1px solid var(--border); 
+            border-radius: 15px; color: #fff; margin-top: 10px; outline: none; font-size: 0.95rem;
         }
-        input:focus { border-color: var(--red); background: rgba(255,255,255,0.08); }
-        
+        input:focus { border-color: var(--red); }
+
         .main-btn { 
-            width: 100%; padding: 18px; background: linear-gradient(135deg, #cc0000, #ff2a2a); color: #fff; border: none; 
-            border-radius: 20px; font-weight: 900; margin-top: 25px; cursor: pointer; font-size: 1.1rem;
-            box-shadow: 0 8px 20px rgba(255,0,0,0.2); transition: 0.3s;
+            width: 100%; padding: 16px; background: linear-gradient(to bottom, #f00, #900); color: #fff; border: none; 
+            border-radius: 15px; font-weight: 900; margin-top: 20px; cursor: pointer; font-size: 1.1rem;
         }
-        .main-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(255,0,0,0.4); }
 
-        .info-section { margin-top: 40px; text-align: center; animation: fadeInUp 1s ease; }
-        .promo-text { color: var(--red); font-weight: 900; font-size: 1.3rem; margin-bottom: 20px; }
-        
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px; }
-        .card { background: rgba(255,255,255,0.03); padding: 20px; border-radius: 25px; border: 1px solid var(--border); font-size: 0.85rem; line-height: 1.4; }
-        .card b { color: var(--red); display: block; margin-bottom: 8px; font-size: 1rem; }
-        
-        .stats-bar { margin-top: 30px; padding: 15px; background: rgba(255,255,255,0.02); border-radius: 50px; border: 1px solid var(--border); font-size: 0.9rem; font-weight: bold; }
-        
-        .agent-card { background: rgba(255,255,255,0.02); border-radius: 30px; padding: 20px; margin-bottom: 20px; border-right: 6px solid var(--red); }
-        .id-badge { background: var(--red); padding: 5px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 800; }
-        .edit-panel { display: none; padding-top: 20px; margin-top: 20px; border-top: 1px solid #333; }
+        /* قسم المعلومات المحفز */
+        .info-section { margin-top: 25px; text-align: center; }
+        .promo-title { color: var(--red); font-weight: 900; font-size: 1.2rem; margin-bottom: 15px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .card { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 20px; border: 1px solid var(--border); font-size: 0.8rem; }
+        .card b { color: var(--red); display: block; margin-bottom: 5px; }
+        .stats { margin-top: 20px; padding: 12px; background: rgba(255,0,0,0.1); border-radius: 50px; border: 1px solid var(--red); font-size: 0.85rem; font-weight: bold; }
+
+        /* التحكم */
+        .agent-card { background: rgba(255,255,255,0.02); border-radius: 25px; padding: 20px; margin-bottom: 15px; border-right: 4px solid var(--red); }
+        .id-badge { background: var(--red); padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; }
+        .edit-panel { display: none; padding-top: 15px; border-top: 1px solid #333; margin-top: 15px; }
         .edit-panel.active { display: block; }
-        .user-id-box { text-align: center; background: rgba(255,0,0,0.05); padding: 35px; border-radius: 30px; border: 2px dashed var(--red); }
-        .big-id { font-size: 3.8rem; font-weight: 900; color: var(--red); }
+        .user-id-box { text-align: center; background: rgba(255,0,0,0.05); padding: 25px; border-radius: 25px; border: 1px dashed var(--red); }
+        .big-id { font-size: 3rem; font-weight: 900; color: var(--red); }
         .hidden { display: none !important; }
-        label { font-size: 0.8rem; color: #666; margin-top: 15px; display: block; }
-        .team-title { font-size: 0.95rem; color: var(--red); font-weight: bold; margin: 25px 0 12px; }
-        .member-box { display: flex; justify-content: space-between; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 18px; margin-bottom: 10px; border: 1px solid var(--border); }
-        .edit-btn { background: none; border: 1px solid #333; color: #888; width: 100%; padding: 12px; border-radius: 15px; margin-top: 15px; cursor: pointer; }
-        .save-btn { width: 100%; padding: 15px; background: #fff; color: #000; border-radius: 15px; font-weight: bold; margin-top: 10px; border: none; }
-        .del-btn { width: 100%; padding: 12px; background: none; border: 1px solid var(--red); color: var(--red); border-radius: 15px; margin-top: 10px; }
-
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        label { font-size: 0.75rem; color: #666; margin-top: 12px; display: block; text-align: right; }
+        .team-title { font-size: 0.9rem; color: var(--red); font-weight: bold; margin: 15px 0 10px; }
+        .member-box { display: flex; justify-content: space-between; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 12px; margin-bottom: 8px; border: 1px solid var(--border); }
+        .edit-btn { background: none; border: 1px solid #333; color: #888; width: 100%; padding: 10px; border-radius: 12px; margin-top: 10px; cursor: pointer; }
+        .save-btn { width: 100%; padding: 12px; background: #fff; color: #000; border-radius: 12px; font-weight: bold; margin-top: 10px; border: none; }
+        .del-btn { width: 100%; padding: 10px; background: none; border: 1px solid var(--red); color: var(--red); border-radius: 12px; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -178,52 +170,49 @@
 
     <div id="authPanel" class="glass-box">
         <div id="loginForm">
-            <div class="inner-logo">HELMY CARD</div>
+            <h2 style="text-align:center; font-size:1.1rem; margin-bottom:20px;">دخول الوكلاء المعتمدين</h2>
             <input type="email" id="l_email" placeholder="البريد الإلكتروني">
             <input type="password" id="l_pass" placeholder="كلمة المرور">
-            <button class="main-btn" onclick="handleAuth('login')">دخول الوكلاء</button>
-            <button style="background:none; border:none; color:#555; width:100%; margin-top:25px; cursor:pointer; font-weight:bold;" onclick="toggleAuthView()">انضم لأكبر شبكة شحن عالمية</button>
+            <button class="main-btn" onclick="handleAuth('login')">تسجيل الدخول</button>
+            <button style="background:none; border:none; color:#555; width:100%; margin-top:20px; cursor:pointer;" onclick="toggleAuthView()">انضم لشبكة وكلائنا العالمية</button>
         </div>
 
         <div id="signupForm" class="hidden">
-            <div class="inner-logo">انضمام الشركاء</div>
-            <input type="text" id="s_name" placeholder="اسمك الكامل أو التجاري">
-            <input type="text" id="s_mycode" placeholder="اختر ID الوكيل الخاص بك">
-            <input type="text" id="s_refcode" placeholder="ID الداعي">
+            <h2 style="text-align:center; font-size:1.1rem; margin-bottom:20px;">إنشاء توكيل جديد</h2>
+            <input type="text" id="s_name" placeholder="الاسم الكامل">
+            <input type="text" id="s_mycode" placeholder="اختر كود الوكيل (ID)">
+            <input type="text" id="s_refcode" placeholder="كود الداعي">
             <input type="email" id="s_email" placeholder="البريد الإلكتروني">
             <input type="password" id="s_pass" placeholder="كلمة المرور">
-            <button class="main-btn" onclick="handleAuth('signup')">تفعيل التوكيل فوراً</button>
-            <button style="background:none; border:none; color:#555; width:100%; margin-top:25px; cursor:pointer;" onclick="toggleAuthView()">العودة لتسجيل الدخول</button>
+            <button class="main-btn" onclick="handleAuth('signup')">تفعيل التوكيل</button>
+            <button style="background:none; border:none; color:#555; width:100%; margin-top:20px; cursor:pointer;" onclick="toggleAuthView()">لديك حساب؟ سجل دخول</button>
         </div>
     </div>
 
     <div id="infoSection" class="info-section">
-        <div class="promo-text">القوة، السرعة، والشمولية في مكان واحد ⚡</div>
-        <p style="color: #888; font-size: 0.95rem; line-height: 1.6;">نحن المنصة الرائدة عالمياً التي تمنحك الوصول الكامل لخدمات الشحن الفوري بأعلى معايير الأمان والاحترافية.</p>
-        
+        <div class="promo-title">قوة الشحن في يدك ⚡</div>
         <div class="grid">
-            <div class="card"><b>شحن الألعاب</b>نغطي جميع الألعاب القتالية والترفيهية والأسطورية بلا استثناء.</div>
-            <div class="card"><b>البرامج الصوتية</b>شحن فوري لكافة تطبيقات التواصل الصوتي وغرف الدردشة.</div>
-            <div class="card"><b>رصيد الهاتف</b>شحن رصيد وتفعيل باقات جميع شبكات الاتصال محلياً ودولياً.</div>
-            <div class="card"><b>تطبيقات البث</b>دعم كامل لكافة تطبيقات البث المباشر والاشتراكات الرقمية.</div>
+            <div class="card"><b>كافة الألعاب</b>شحن فوري لجميع الألعاب العالمية بلا استثناء.</div>
+            <div class="card"><b>البرامج الصوتية</b>دعم كامل لغرف الدردشة والتطبيقات الصوتية.</div>
+            <div class="card"><b>رصيد وباقات</b>شحن الرصيد وتفعيل باقات الإنترنت دولياً.</div>
+            <div class="card"><b>اشتراكات رقمية</b>شحن تطبيقات اللايف والمنصات الترفيهية.</div>
         </div>
-
-        <div class="stats-bar">أكثر من 100,000 وكيل معتمد حول العالم 🌍</div>
-        <p style="margin-top:20px; font-size:0.85rem; color:var(--red); font-weight:bold; letter-spacing:1px;">HELMY CARD - NO LIMITS</p>
+        <div class="stats">أكثر من 100,000 وكيل نشط حول العالم 🌍</div>
+        <p style="margin-top:15px; font-size:0.8rem; opacity:0.5;">أمان - سرعة - شمولية</p>
     </div>
 
     <div id="mainDashboard" class="hidden">
         <div class="glass-box">
-            <h1 id="dashTitle" style="color:var(--red); text-align:center; margin-bottom:30px; font-weight:900;">لوحة التحكم</h1>
+            <h1 id="dashTitle" style="text-align:center; color:var(--red);">لوحة التحكم</h1>
             <div id="dashboardContent"></div>
 
-            <div id="adminTools" class="hidden" style="margin-top:30px; border-top:1px solid #333; padding-top:20px;">
-                <label style="color:var(--red); font-weight:bold;">⚙️ إدارة خدمة العملاء:</label>
-                <input type="text" id="new-wa" placeholder="رابط الواتساب أو الرقم (مثال: 2010xxxx)">
-                <button class="save-btn" style="background:var(--red); color:#fff;" onclick="updateWA()">تحديث رقم الواتساب</button>
+            <div id="adminTools" class="hidden" style="margin-top:20px; border-top:1px solid #333; padding-top:20px;">
+                <label>تعديل رقم الواتساب (مثال: 2010xxxxxxxx):</label>
+                <input type="text" id="new-wa" placeholder="رقم خدمة العملاء">
+                <button class="save-btn" style="background:var(--red); color:#fff;" onclick="updateWA()">تحديث الرقم</button>
             </div>
 
-            <button class="main-btn" style="background:#000; border:1px solid #222; margin-top:40px;" onclick="logout()">خروج آمن</button>
+            <button class="main-btn" style="background:#111; border:1px solid #222; margin-top:30px;" onclick="logout()">خروج</button>
         </div>
     </div>
 </div>
