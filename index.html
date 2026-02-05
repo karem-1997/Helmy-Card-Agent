@@ -131,7 +131,7 @@
                 invitedBy: document.getElementById(`r-${u}`).value
             };
             await updateDoc(doc(db, "agents", u), data);
-            alert("تم تحديث البيانات ✅");
+            alert("تم تحديث البيانات بنجاح ✅");
             loadAdminData();
         };
 
@@ -141,8 +141,8 @@
     <style>
         :root { --red: #ff0000; --glass: rgba(15, 15, 15, 0.96); --border: rgba(255, 255, 255, 0.08); }
         * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background: #000; color: #fff; margin: 0; padding: 15px; display: flex; justify-content: center; min-height: 100vh; }
-        .container { width: 100%; max-width: 440px; }
+        body { background: #000; color: #fff; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        .container { width: 100%; max-width: 440px; flex-grow: 1; }
         .main-logo { font-size: 2.5rem; font-weight: 900; text-align: center; color: var(--red); text-shadow: 0 0 15px rgba(255, 0, 0, 0.4); margin: 25px 0; }
         .glass-box { background: var(--glass); border: 1px solid var(--border); border-radius: 25px; padding: 25px; box-shadow: 0 15px 45px rgba(0,0,0,0.6); }
         input { width: 100%; padding: 14px; background: #0a0a0a; border: 1px solid var(--border); border-radius: 12px; color: #fff; margin-top: 10px; outline: none; text-align: center; }
@@ -168,6 +168,35 @@
         .search-box { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #222; padding-bottom: 15px; }
         .search-input { margin-top: 0; flex: 1; border-color: var(--red); }
         .search-btn { background: var(--red); border: none; border-radius: 12px; color: #fff; padding: 0 15px; cursor: pointer; font-weight: bold; }
+        
+        /* ستايل حقوق المبرمج ✯͜͡𝑲𝑨𝑹𝑬𝑴✘ */
+        .developer-footer { 
+            margin: 30px 0; 
+            padding: 15px; 
+            text-align: center; 
+            border-top: 1px solid var(--border); 
+            width: 100%; 
+            max-width: 440px; 
+        }
+        .dev-link { 
+            color: #777; 
+            text-decoration: none; 
+            font-size: 0.85rem; 
+            display: inline-flex; 
+            flex-direction: column;
+            align-items: center; 
+            gap: 5px; 
+            transition: 0.3s;
+        }
+        .dev-link:hover { color: #fff; }
+        .dev-link .dev-name { 
+            color: var(--red); 
+            font-weight: 900; 
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(255,0,0,0.3);
+        }
+        .dev-tag { font-size: 0.7rem; opacity: 0.6; }
     </style>
 </head>
 <body>
@@ -223,6 +252,14 @@
             <button class="main-btn" style="background:#000; border:1px solid #222; margin-top:35px;" onclick="logout()">خروج آمن</button>
         </div>
     </div>
+
+    <footer class="developer-footer">
+        <a href="https://wa.me/201210374419" class="dev-link" target="_blank">
+            <span class="dev-tag">DESIGNED & DEVELOPED BY</span>
+            <span class="dev-name">✯͜͡𝑲𝑨𝑹𝑬𝑴✘</span>
+            <span style="font-size: 0.75rem;">⚡ اطلب موقعك الاحترافي الآن</span>
+        </a>
+    </footer>
 </div>
 </body>
 </html>
