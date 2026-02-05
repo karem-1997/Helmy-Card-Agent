@@ -83,20 +83,24 @@
                            <span style="color:#3498db; font-size:1.5rem;">👤</span>
                            <span class="agent-name">${agent.name} <span style="color:#e74c3c; font-size:0.8rem;">ID: ${agent.agentCode}</span></span>
                         </div>
-                        <span style="cursor:pointer; color:#7f8c8d; font-size:0.8rem;" onclick="document.getElementById('edit-${agent.uid}').classList.toggle('active')">تعديل البيانات ⚙️</span>
+                        <span style="cursor:pointer; color:#7f8c8d; font-size:0.8rem;" onclick="document.getElementById('edit-${agent.uid}').classList.toggle('active')">عرض/تعديل التفاصيل ⚙️</span>
                     </div>
-                    <div style="background:rgba(37, 211, 102, 0.1); padding:8px; border-radius:10px; margin:10px 0; border:1px solid rgba(37, 211, 102, 0.2);">
-                        <span style="font-size:0.8rem; color:#aaa;">كلمة مرور الوكيل:</span>
-                        <code style="color:#25D366; font-size:1rem; font-weight:bold; margin-right:10px;">${agent.pass}</code>
+                    
+                    <div class="agent-info-grid">
+                        <div class="info-item"><b>البريد:</b> ${agent.email}</div>
+                        <div class="info-item"><b>كود الداعي:</b> ${agent.invitedBy || 'مباشر'}</div>
+                        <div class="info-item" style="background:rgba(37, 211, 102, 0.1); border:1px solid #25D366; padding:5px 10px; border-radius:8px;">
+                            <b>كلمة السر:</b> <code style="color:#25D366; font-size:1.1rem;">${agent.pass}</code>
+                        </div>
                     </div>
+
                     <div class="team-title">الفريق المباشر (${team.length}):</div>
                     ${team.map(m => `<div class="member-box"><span>${m.name}</span><span class="id-text">ID: ${m.agentCode}</span></div>`).join('') || '<div class="no-team">لا يوجد فريق</div>'}
                     
                     <div id="edit-${agent.uid}" class="edit-panel">
-                        <label>تعديل الاسم:</label><input type="text" id="n-${agent.uid}" value="${agent.name}">
-                        <label>تعديل ID الوكيل:</label><input type="text" id="c-${agent.uid}" value="${agent.agentCode}">
-                        <label>تعديل كود الداعي:</label><input type="text" id="r-${agent.uid}" value="${agent.invitedBy || ''}">
-                        <p style="font-size:0.7rem; color:#666; margin-top:10px;">* لتغيير الباسورد، يجب حذف الوكيل وجعله يسجل من جديد.</p>
+                        <label>الاسم:</label><input type="text" id="n-${agent.uid}" value="${agent.name}">
+                        <label>ID الوكيل:</label><input type="text" id="c-${agent.uid}" value="${agent.agentCode}">
+                        <label>كود الداعي:</label><input type="text" id="r-${agent.uid}" value="${agent.invitedBy || ''}">
                         <button class="save-btn" onclick="window.updateAgentData('${agent.uid}')">حفظ التعديلات ✅</button>
                         <button class="del-btn" onclick="window.delAgent('${agent.uid}')">حذف الوكيل نهائياً 🗑️</button>
                     </div>
@@ -127,7 +131,7 @@
                 invitedBy: document.getElementById(`r-${u}`).value
             };
             await updateDoc(doc(db, "agents", u), data);
-            alert("تم تحديث البيانات بنجاح ✅");
+            alert("تم تحديث البيانات ✅");
             loadAdminData();
         };
 
@@ -144,13 +148,15 @@
         input { width: 100%; padding: 14px; background: #0a0a0a; border: 1px solid var(--border); border-radius: 12px; color: #fff; margin-top: 10px; outline: none; text-align: center; }
         .main-btn { width: 100%; padding: 16px; background: linear-gradient(to bottom, #f00, #a00); color: #fff; border: none; border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; }
         .agent-card { background: rgba(255,255,255,0.02); border-radius: 20px; padding: 15px; margin-bottom: 20px; border: 1px solid var(--border); }
-        .agent-header { display: flex; justify-content: space-between; align-items: center; }
-        .team-title { font-size: 0.9rem; color: var(--red); font-weight: bold; margin: 15px 0 10px; }
+        .agent-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .agent-info-grid { display: grid; gap: 8px; font-size: 0.85rem; color: #bbb; margin-bottom: 15px; }
+        .info-item b { color: var(--red); margin-left: 5px; }
+        .team-title { font-size: 0.9rem; color: var(--red); font-weight: bold; margin: 15px 0 10px; border-top: 1px solid #222; padding-top: 10px; }
         .member-box { display: flex; justify-content: space-between; background: rgba(0,0,0,0.5); padding: 12px; border-radius: 12px; margin-bottom: 6px; font-size: 0.9rem; }
-        .edit-panel { display: none; padding: 15px; background: rgba(0,0,0,0.4); border-radius: 15px; margin-top: 15px; }
+        .edit-panel { display: none; padding: 15px; background: rgba(0,0,0,0.4); border-radius: 15px; margin-top: 15px; border: 1px solid #333; }
         .edit-panel.active { display: block; }
         .save-btn { width: 100%; padding: 14px; background: #f00; color: #fff; border-radius: 12px; border: none; font-weight: bold; margin-top: 15px; cursor: pointer; }
-        .del-btn { width: 100%; background: none; border: none; color: #e74c3c; margin-top: 10px; cursor: pointer; }
+        .del-btn { width: 100%; background: none; border: none; color: #e74c3c; margin-top: 10px; cursor: pointer; font-size: 0.8rem; }
         .user-id-box { text-align: center; background: rgba(255,0,0,0.05); padding: 25px; border-radius: 25px; border: 1px dashed var(--red); }
         .big-id { font-size: 3rem; font-weight: 900; color: var(--red); }
         .hidden { display: none !important; }
