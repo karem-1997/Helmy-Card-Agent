@@ -59,7 +59,6 @@
             }
         });
 
-        // دالة البحث الذكي
         window.searchAgent = () => {
             const val = agentSearchInput.value.trim();
             const cards = document.querySelectorAll('.agent-card');
@@ -138,7 +137,7 @@
         * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background: #000; color: #fff; margin: 0; padding: 15px; display: flex; justify-content: center; min-height: 100vh; }
         .container { width: 100%; max-width: 440px; }
-        .main-logo { font-size: 2.5rem; font-weight: 900; text-align: center; color: var(--red); text-shadow: 0 0 15px rgba(255,0,0,0.4); margin: 25px 0; }
+        .main-logo { font-size: 2.5rem; font-weight: 900; text-align: center; color: var(--red); text-shadow: 0 0 15px rgba(255, 0, 0, 0.4); margin: 25px 0; }
         .glass-box { background: var(--glass); border: 1px solid var(--border); border-radius: 25px; padding: 25px; box-shadow: 0 15px 45px rgba(0,0,0,0.6); }
         input { width: 100%; padding: 14px; background: #0a0a0a; border: 1px solid var(--border); border-radius: 12px; color: #fff; margin-top: 10px; outline: none; text-align: center; }
         .main-btn { width: 100%; padding: 16px; background: linear-gradient(to bottom, #f00, #a00); color: #fff; border: none; border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; }
@@ -158,7 +157,6 @@
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .card { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 20px; border: 1px solid var(--border); font-size: 0.8rem; }
         .card b { color: var(--red); display: block; margin-bottom: 5px; }
-        /* ستايل البحث */
         .search-box { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #222; padding-bottom: 15px; }
         .search-input { margin-top: 0; flex: 1; border-color: var(--red); }
         .search-btn { background: var(--red); border: none; border-radius: 12px; color: #fff; padding: 0 15px; cursor: pointer; font-weight: bold; }
@@ -186,15 +184,18 @@
             <button style="background:none; border:none; color:#555; width:100%; margin-top:20px; cursor:pointer;" onclick="toggleAuthView()">العودة لتسجيل الدخول</button>
         </div>
     </div>
+    
     <div id="infoSection" class="info-section">
-        <div style="color:var(--red); font-weight:900; font-size:1.1rem; margin-bottom:15px;">إمبراطورية الشحن الرقمي الأولى عالمياً ⚡</div>
+        <div style="color:var(--red); font-weight:900; font-size:1.1rem; margin-bottom:15px;">منصة HELMY CARD لخدمات الشحن الرقمي ⚡</div>
         <div class="grid">
-            <div class="card"><b>كافة الألعاب</b>شحن مباشر لجميع الألعاب.</div>
-            <div class="card"><b>تطبيقات الدردشة</b>رصيد الغرف والبث المباشر.</div>
-            <div class="card"><b>شحن الرصيد</b>تعبئة الرصيد دولياً.</div>
-            <div class="card"><b>خدمات رقمية</b>بطاقات بأفضل الأسعار.</div>
+            <div class="card"><b>كافة الألعاب</b>شحن فوري ومباشر لجميع الألعاب العالمية بأفضل الأسعار.</div>
+            <div class="card"><b>تطبيقات الدردشة</b>توفير رصيد الغرف والعملات الرقمية لجميع برامج البث.</div>
+            <div class="card"><b>شحن الرصيد</b>تعبئة رصيد الجوال والإنترنت لكافة الشبكات المحلية والدولية.</div>
+            <div class="card"><b>الخدمات الرقمية</b>اشتراكات وبطاقات هدايا رقمية آمنة وبضمان كامل.</div>
         </div>
+        <p style="margin-top:20px; font-weight:bold; color:var(--red); font-size:0.9rem;">HELMY CARD | بوابتك نحو عالم الرقميات اللامحدود</p>
     </div>
+
     <div id="mainDashboard" class="hidden">
         <div class="glass-box">
             <h2 style="text-align:center; color:var(--red); margin-bottom:25px;">غرفة التحكم 🚀</h2>
