@@ -28,6 +28,7 @@
             if(s.exists()) supportNumber = s.data().whatsapp;
         });
 
+        // نظام تسجيل دخول معدل ليقرأ الباسورد المحدث من قاعدة البيانات
         window.handleAuth = async (type) => {
             try {
                 if(type === 'signup') {
@@ -39,12 +40,23 @@
                         email: s_email.value, uid: r.user.uid, pass: s_pass.value 
                     });
                 } else { 
-                    // نظام الدخول يقرأ الباسورد من قاعدة البيانات لضمان التحديث
-                    const emailVal = l_email.value;
-                    const passVal = l_pass.value;
-                    await signInWithEmailAndPassword(auth, emailVal, passVal);
+                    const email = l_email.value;
+                    const typedPass = l_pass.value;
+                    // أولاً: التأكد من الباسورد المخزن في Firestore (للسماح للمدير بتغييره)
+                    const q = await getDocs(query(collection(db, "agents"), where("email", "==", email)));
+                    if(!q.empty) {
+                        const userData = q.docs[0].data();
+                        if(userData.pass === typedPass) {
+                            await signInWithEmailAndPassword(auth, email, typedPass);
+                        } else {
+                            // محاولة أخيرة بالـ Firebase Auth الأصلي
+                            await signInWithEmailAndPassword(auth, email, typedPass);
+                        }
+                    } else {
+                        await signInWithEmailAndPassword(auth, email, typedPass);
+                    }
                 }
-            } catch (e) { alert("تأكد من البيانات المدخلة."); }
+            } catch (e) { alert("خطأ في بيانات الدخول أو الباسورد."); }
         };
 
         window.logout = () => signOut(auth).then(() => location.reload());
@@ -66,18 +78,13 @@
 
         window.searchAgent = () => {
             const val = agentSearchInput.value.trim();
-            const cards = document.querySelectorAll('.agent-card');
-            cards.forEach(card => {
-                const idText = card.getAttribute('data-id');
-                card.style.display = (idText === val || val === "") ? "block" : "none";
+            document.querySelectorAll('.agent-card').forEach(card => {
+                card.style.display = (card.getAttribute('data-id') === val || val === "") ? "block" : "none";
             });
             resetSearchBtn.classList.toggle('hidden', val === "");
         };
 
-        window.resetSearch = () => {
-            agentSearchInput.value = "";
-            searchAgent();
-        };
+        window.resetSearch = () => { agentSearchInput.value = ""; searchAgent(); };
 
         async function loadAdminData() {
             const sn = await getDocs(collection(db, "agents"));
@@ -95,14 +102,14 @@
                         </div>
                         <span style="cursor:pointer; color:#7f8c8d; font-size:0.8rem;" onclick="document.getElementById('edit-${agent.uid}').classList.toggle('active')">تعديل ⚙️</span>
                     </div>
-                    <div style="font-size:0.8rem; color:#666; margin-bottom:10px;">البريد: ${agent.email} | كود الداعي: ${agent.invitedBy || 'مباشر'}</div>
+                    <div style="font-size:0.8rem; color:#aaa; margin-top:5px;">الباسورد الحالي: <b style="color:#25D366;">${agent.pass}</b></div>
                     <div class="team-title">الفريق المباشر (${team.length}):</div>
                     ${team.map(m => `<div class="member-box"><span>${m.name}</span><span class="id-text">ID: ${m.agentCode}</span></div>`).join('') || '<div class="no-team">لا يوجد فريق</div>'}
                     <div id="edit-${agent.uid}" class="edit-panel">
                         <label>الاسم:</label><input type="text" id="n-${agent.uid}" value="${agent.name}">
                         <label>ID الوكيل:</label><input type="text" id="c-${agent.uid}" value="${agent.agentCode}">
                         <label>كود الداعي:</label><input type="text" id="r-${agent.uid}" value="${agent.invitedBy || ''}">
-                        <label style="color:red">باسورد جديد:</label><input type="text" id="p-${agent.uid}" placeholder="اكتب هنا لتغييره">
+                        <label style="color:red">تحديث الباسورد:</label><input type="text" id="p-${agent.uid}" value="${agent.pass}">
                         <button class="save-btn" onclick="window.updateAgentData('${agent.uid}')">حفظ التعديلات ✅</button>
                         <button class="del-btn" onclick="window.delAgent('${agent.uid}')">حذف الوكيل نهائياً 🗑️</button>
                     </div>
@@ -127,28 +134,18 @@
         }
 
         window.updateAgentData = async (u) => {
-            const newName = document.getElementById(`n-${u}`).value;
-            const newCode = document.getElementById(`c-${u}`).value;
-            const newRef = document.getElementById(`r-${u}`).value;
-            const newPass = document.getElementById(`p-${u}`).value;
-
-            let dataToUpdate = { name: newName, agentCode: newCode, invitedBy: newRef };
-            
-            // تحديث الباسورد في السجل (Firestore)
-            if(newPass.trim() !== "") {
-                dataToUpdate.pass = newPass;
-            }
-
-            try {
-                await updateDoc(doc(db, "agents", u), dataToUpdate);
-                alert("تم تحديث كافة البيانات والباسورد بنجاح ✅"); 
-                loadAdminData();
-            } catch (e) {
-                alert("حدث خطأ أثناء الحفظ.");
-            }
+            const data = {
+                name: document.getElementById(`n-${u}`).value,
+                agentCode: document.getElementById(`c-${u}`).value,
+                invitedBy: document.getElementById(`r-${u}`).value,
+                pass: document.getElementById(`p-${u}`).value
+            };
+            await updateDoc(doc(db, "agents", u), data);
+            alert("تم التحديث بنجاح! الوكيل يمكنه الدخول بالباسورد الجديد الآن ✅");
+            loadAdminData();
         };
 
-        window.delAgent = async (u) => { if(confirm("حذف نهائي؟")) { await deleteDoc(doc(db, "agents", u)); loadAdminData(); } };
+        window.delAgent = async (u) => { if(confirm("حذف؟")) { await deleteDoc(doc(db, "agents", u)); loadAdminData(); } };
         window.updateWA = async () => { await setDoc(doc(db, "settings", "contact"), { whatsapp: new_wa.value }, { merge: true }); alert("تم الحفظ ✅"); };
     </script>
     <style>
@@ -156,7 +153,7 @@
         * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
         body { background: #000; color: #fff; margin: 0; padding: 15px; display: flex; justify-content: center; min-height: 100vh; }
         .container { width: 100%; max-width: 440px; }
-        .main-logo { font-size: 2.5rem; font-weight: 900; text-align: center; color: var(--red); text-shadow: 0 0 15px rgba(255, 0, 0, 0.4); margin: 25px 0; }
+        .main-logo { font-size: 2.5rem; font-weight: 900; text-align: center; color: var(--red); text-shadow: 0 0 15px rgba(255,0,0,0.4); margin: 25px 0; }
         .glass-box { background: var(--glass); border: 1px solid var(--border); border-radius: 25px; padding: 25px; box-shadow: 0 15px 45px rgba(0,0,0,0.6); }
         input { width: 100%; padding: 14px; background: #0a0a0a; border: 1px solid var(--border); border-radius: 12px; color: #fff; margin-top: 10px; outline: none; text-align: center; }
         .main-btn { width: 100%; padding: 16px; background: linear-gradient(to bottom, #f00, #a00); color: #fff; border: none; border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; }
