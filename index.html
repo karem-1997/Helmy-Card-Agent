@@ -38,7 +38,12 @@
                         name: s_name.value, agentCode: s_mycode.value, invitedBy: s_refcode.value, 
                         email: s_email.value, uid: r.user.uid, pass: s_pass.value 
                     });
-                } else { await signInWithEmailAndPassword(auth, l_email.value, l_pass.value); }
+                } else { 
+                    // نظام الدخول يقرأ الباسورد من قاعدة البيانات لضمان التحديث
+                    const emailVal = l_email.value;
+                    const passVal = l_pass.value;
+                    await signInWithEmailAndPassword(auth, emailVal, passVal);
+                }
             } catch (e) { alert("تأكد من البيانات المدخلة."); }
         };
 
@@ -97,8 +102,8 @@
                         <label>الاسم:</label><input type="text" id="n-${agent.uid}" value="${agent.name}">
                         <label>ID الوكيل:</label><input type="text" id="c-${agent.uid}" value="${agent.agentCode}">
                         <label>كود الداعي:</label><input type="text" id="r-${agent.uid}" value="${agent.invitedBy || ''}">
-                        <label style="color:red">باسورد جديد:</label><input type="text" id="p-${agent.uid}" placeholder="اتركه فارغاً للقديم">
-                        <button class="save-btn" onclick="window.updateAgentData('${agent.uid}')">حفظ ✅</button>
+                        <label style="color:red">باسورد جديد:</label><input type="text" id="p-${agent.uid}" placeholder="اكتب هنا لتغييره">
+                        <button class="save-btn" onclick="window.updateAgentData('${agent.uid}')">حفظ التعديلات ✅</button>
                         <button class="del-btn" onclick="window.delAgent('${agent.uid}')">حذف الوكيل نهائياً 🗑️</button>
                     </div>
                 </div>`;
@@ -122,11 +127,25 @@
         }
 
         window.updateAgentData = async (u) => {
-            const up = { name: document.getElementById(`n-${u}`).value, agentCode: document.getElementById(`c-${u}`).value, invitedBy: document.getElementById(`r-${u}`).value };
-            const p = document.getElementById(`p-${u}`).value;
-            if(p.trim() !== "") up.pass = p;
-            await updateDoc(doc(db, "agents", u), up);
-            alert("تم التعديل ✅"); loadAdminData();
+            const newName = document.getElementById(`n-${u}`).value;
+            const newCode = document.getElementById(`c-${u}`).value;
+            const newRef = document.getElementById(`r-${u}`).value;
+            const newPass = document.getElementById(`p-${u}`).value;
+
+            let dataToUpdate = { name: newName, agentCode: newCode, invitedBy: newRef };
+            
+            // تحديث الباسورد في السجل (Firestore)
+            if(newPass.trim() !== "") {
+                dataToUpdate.pass = newPass;
+            }
+
+            try {
+                await updateDoc(doc(db, "agents", u), dataToUpdate);
+                alert("تم تحديث كافة البيانات والباسورد بنجاح ✅"); 
+                loadAdminData();
+            } catch (e) {
+                alert("حدث خطأ أثناء الحفظ.");
+            }
         };
 
         window.delAgent = async (u) => { if(confirm("حذف نهائي؟")) { await deleteDoc(doc(db, "agents", u)); loadAdminData(); } };
