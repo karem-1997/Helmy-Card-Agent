@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HELMY CARD | THE EMPIRE</title>
+    <title>HELMY CARD | LUXURY EDITION</title>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -23,60 +23,16 @@
         const db = getFirestore(app);
         const ADMIN = "helmy@helmy.com";
 
-        // --- نظام المظهر الذكي (روابط) ---
-        onSnapshot(doc(db, "settings", "appearance"), (s) => {
-            if(s.exists()){
-                const d = s.data();
-                if(d.bg) document.body.style.backgroundImage = `url('${d.bg}')`;
-                if(d.covers) startSlider(d.covers);
-            }
-        });
-
-        function startSlider(links) {
-            const slider = document.getElementById('hero-slider');
-            if(!links || links.length === 0) return;
-            slider.innerHTML = links.map((l, i) => `<div class="slide ${i===0?'active':''}" style="background-image:url('${l}')"></div>`).join('');
-            let idx = 0;
-            if(window.sliderInterval) clearInterval(window.sliderInterval);
-            window.sliderInterval = setInterval(() => {
-                const ss = document.querySelectorAll('.slide');
-                if(ss.length < 2) return;
-                ss[idx].classList.remove('active');
-                idx = (idx + 1) % ss.length;
-                ss[idx].classList.add('active');
-            }, 5000);
-        }
-
-        window.updateAppearance = async (type) => {
-            const val = type === 'bg' ? bgLink.value : coverLink.value;
-            if(!val) return alert("يرجى وضع رابط الصورة أولاً");
-            const btn = event.target; btn.innerText = "جاري الحفظ...";
-            try {
-                const docRef = doc(db, "settings", "appearance");
-                if(type === 'bg') {
-                    await setDoc(docRef, { bg: val }, { merge: true });
-                } else {
-                    const snap = await getDoc(docRef);
-                    let cur = snap.exists() ? (snap.data().covers || []) : [];
-                    cur.push(val);
-                    await setDoc(docRef, { covers: cur }, { merge: true });
-                }
-                alert("تم تحديث المظهر بنجاح ✅");
-                bgLink.value = ""; coverLink.value = "";
-            } catch (e) { alert("حدث خطأ في الاتصال بقاعدة البيانات"); }
-            btn.innerText = type === 'bg' ? "تحديث الخلفية" : "إضافة للسلايدر";
-        };
-
-        // --- نظام الإدارة والحسابات ---
+        // --- نظام الحسابات ---
         window.handleAuth = async (t) => {
             try {
                 if(t === 'signup') {
                     const qS = await getDocs(query(collection(db, "agents"), where("agentCode", "==", s_mycode.value)));
-                    if(!qS.empty) return alert("كود الوكيل هذا مستخدم بالفعل!");
+                    if(!qS.empty) return alert("هذا الـ ID محجوز!");
                     const r = await createUserWithEmailAndPassword(auth, s_email.value, s_pass.value);
                     await setDoc(doc(db, "agents", r.user.uid), { name: s_name.value, agentCode: s_mycode.value, invitedBy: s_refcode.value, email: s_email.value, uid: r.user.uid });
                 } else { await signInWithEmailAndPassword(auth, l_email.value, l_pass.value); }
-            } catch (e) { alert("تأكد من صحة البيانات المدخلة"); }
+            } catch (e) { alert("تأكد من البيانات المدخلة"); }
         };
 
         window.logout = () => signOut(auth).then(() => location.reload());
@@ -86,11 +42,12 @@
             if(user) {
                 authPanel.classList.add('hidden');
                 mainDashboard.classList.remove('hidden');
-                if(user.email === ADMIN) { adminSettings.classList.remove('hidden'); loadAdmin(); } 
+                if(user.email === ADMIN) { loadAdmin(); } 
                 else { loadUser(user.uid); }
             }
         });
 
+        // --- لوحة الإدارة ---
         async function loadAdmin() {
             const sn = await getDocs(collection(db, "agents"));
             const all = sn.docs.map(d => d.data());
@@ -104,19 +61,18 @@
                         <span class="agent-name">👤 ${a.name}</span>
                         <span class="id-badge">ID: ${a.agentCode}</span>
                     </div>
-                    <div class="team-title">الفريق الملحق (${team.length}):</div>
-                    ${team.map(m => `<div class="member-box"><span>${m.name}</span><span class="id-text">ID: ${m.agentCode}</span></div>`).join('') || '<div class="no-team">لا يوجد أعضاء حالياً</div>'}
+                    <div class="team-title">الفريق (${team.length}):</div>
+                    ${team.map(m => `<div class="member-box"><span>${m.name}</span><span class="id-text">ID: ${m.agentCode}</span></div>`).join('') || '<div class="no-team">لا يوجد أعضاء</div>'}
                     
-                    <button class="edit-toggle-btn" onclick="document.getElementById('edit-${a.uid}').classList.toggle('active')">تعديل البيانات ⚙️</button>
+                    <button class="edit-btn" onclick="document.getElementById('edit-${a.uid}').classList.toggle('active')">⚙️ تعديل الوكيل</button>
                     
                     <div id="edit-${a.uid}" class="edit-panel">
-                        <label>الاسم الكامل:</label><input type="text" id="n-${a.uid}" value="${a.name}">
-                        <label>كود الوكيل (ID):</label><input type="text" id="c-${a.uid}" value="${a.agentCode}">
+                        <label>الاسم:</label><input type="text" id="n-${a.uid}" value="${a.name}">
+                        <label>ID الوكيل:</label><input type="text" id="c-${a.uid}" value="${a.agentCode}">
                         <label>كود الداعي:</label><input type="text" id="r-${a.uid}" value="${a.invitedBy || ''}">
-                        <label>تغيير الباسورد:</label><input type="password" id="p-${a.uid}" placeholder="اتركه فارغاً للحفاظ على الحالي">
-                        
-                        <button class="save-small-btn" onclick="window.updateAgentData('${a.uid}')">حفظ كل التعديلات ✅</button>
-                        <button class="del-small-btn" onclick="window.delAgent('${a.uid}')">حذف الوكيل نهائياً 🗑️</button>
+                        <label>تغيير الباسورد:</label><input type="password" id="p-${a.uid}" placeholder="كلمة مرور جديدة">
+                        <button class="save-btn" onclick="window.updateAgentData('${a.uid}')">حفظ التغييرات</button>
+                        <button class="del-btn" onclick="window.delAgent('${a.uid}')">حذف الوكيل</button>
                     </div>
                 </div>`;
             });
@@ -124,16 +80,12 @@
         }
 
         window.updateAgentData = async (u) => {
-            const n = document.getElementById(`n-${u}`).value;
-            const c = document.getElementById(`c-${u}`).value;
-            const r = document.getElementById(`r-${u}`).value;
-            try {
-                await updateDoc(doc(db, "agents", u), { name: n, agentCode: c, invitedBy: r });
-                alert("تم الحفظ بنجاح ✅"); loadAdmin();
-            } catch (e) { alert("حدث خطأ في التحديث"); }
+            const n = document.getElementById(`n-${u}`).value, c = document.getElementById(`c-${u}`).value, r = document.getElementById(`r-${u}`).value;
+            await updateDoc(doc(db, "agents", u), { name: n, agentCode: c, invitedBy: r });
+            alert("تم الحفظ بنجاح ✅"); loadAdmin();
         };
 
-        window.delAgent = async (u) => { if(confirm("هل تريد حذف الوكيل نهائياً؟")) { await deleteDoc(doc(db, "agents", u)); loadAdmin(); } };
+        window.delAgent = async (u) => { if(confirm("حذف نهائي؟")) { await deleteDoc(doc(db, "agents", u)); loadAdmin(); } };
 
         async function loadUser(u) {
             const d = await getDoc(doc(db, "agents", u));
@@ -142,130 +94,125 @@
                 const q = await getDocs(query(collection(db, "agents"), where("invitedBy", "==", a.agentCode)));
                 dashTitle.innerText = "لوحة الوكيل VIP";
                 dashboardContent.innerHTML = `
-                    <div class="user-id-box"><small>كودك الخاص للمشاركة</small><div class="big-id">${a.agentCode}</div></div>
+                    <div class="user-id-box"><small>كود المشاركة الخاص بك</small><div class="big-id">${a.agentCode}</div></div>
                     <div class="team-title" style="margin-top:25px;">أعضاء فريقك (${q.size}):</div>
-                    ${q.docs.map(m => `<div class="member-box"><span>👤 ${m.data().name}</span><span class="id-text">ID: ${m.data().agentCode}</span></div>`).join('') || '<p style="text-align:center; color:#777;">لا يوجد منضمين بعد</p>'}
+                    ${q.docs.map(m => `<div class="member-box"><span>👤 ${m.data().name}</span><span class="id-text">ID: ${m.data().agentCode}</span></div>`).join('') || '<p style="text-align:center; opacity:0.5;">لا يوجد منضمين حالياً</p>'}
                 `;
             }
         }
     </script>
     <style>
-        :root { --red: #ff0000; --red-glow: 0 0 15px rgba(255,0,0,0.6); --glass: rgba(15, 15, 15, 0.95); }
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
-        
+        :root { 
+            --red: #ff3b3b; 
+            --dark-red: #8b0000;
+            --glass: rgba(20, 20, 20, 0.7);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
+
         body { 
-            background: #000; background-size: cover; background-attachment: fixed; background-position: center;
-            color: #fff; margin: 0; padding: 15px; display: flex; justify-content: center; min-height: 100vh;
+            background: radial-gradient(circle at top, #2c0000 0%, #000000 100%);
+            background-attachment: fixed;
+            color: #fff; margin: 0; padding: 20px;
+            display: flex; justify-content: center; min-height: 100vh;
         }
 
-        .container { width: 100%; max-width: 480px; z-index: 10; padding-bottom: 50px; }
+        .container { width: 100%; max-width: 450px; }
 
-        /* الاسم الضخم */
         .main-logo { 
-            font-size: 3.2rem; font-weight: 900; text-align: center; color: var(--red);
-            text-shadow: var(--red-glow); letter-spacing: -1px; margin-bottom: 15px;
+            font-size: 3.5rem; font-weight: 900; text-align: center; 
+            color: var(--red); text-shadow: 0 0 20px rgba(255, 59, 59, 0.4);
+            margin-bottom: 30px; letter-spacing: -2px;
         }
 
-        /* السلايدر */
-        #hero-slider { 
-            width: 100%; height: 190px; border-radius: 25px; overflow: hidden; 
-            margin-bottom: 25px; position: relative; border: 2px solid #333;
-        }
-        .slide { position: absolute; width: 100%; height: 100%; opacity: 0; transition: opacity 1.2s ease-in-out; background-size: cover; background-position: center; }
-        .slide.active { opacity: 1; }
-
-        /* الصناديق الزجاجية */
         .glass-box { 
-            background: var(--glass); border: 1px solid rgba(255,255,255,0.1); 
-            border-radius: 35px; padding: 25px; backdrop-filter: blur(20px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            background: var(--glass); 
+            backdrop-filter: blur(15px); 
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--border);
+            border-radius: 30px; padding: 25px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
         }
+
+        h1 { font-size: 1.2rem; text-align: center; margin-bottom: 25px; font-weight: 300; opacity: 0.9; }
 
         input { 
-            width: 100%; padding: 15px; background: rgba(0,0,0,0.7); border: 1px solid #444; 
-            border-radius: 18px; color: #fff; margin-top: 10px; outline: none; transition: 0.3s;
+            width: 100%; padding: 15px; background: rgba(255,255,255,0.05); 
+            border: 1px solid var(--border); border-radius: 15px; 
+            color: #fff; margin-top: 12px; outline: none; transition: 0.3s;
         }
-        input:focus { border-color: var(--red); box-shadow: var(--red-glow); }
+        input:focus { border-color: var(--red); background: rgba(255,255,255,0.1); }
 
         .main-btn { 
-            width: 100%; padding: 16px; background: linear-gradient(135deg, #900, #f00); 
-            color: #fff; border: none; border-radius: 18px; font-weight: bold; margin-top: 20px; 
-            cursor: pointer; font-size: 1.1rem; box-shadow: 0 5px 15px rgba(255,0,0,0.3);
+            width: 100%; padding: 16px; background: var(--red); 
+            color: #fff; border: none; border-radius: 15px; 
+            font-weight: bold; margin-top: 25px; cursor: pointer; 
+            font-size: 1.1rem; box-shadow: 0 10px 20px rgba(255,0,0,0.2);
+            transition: 0.3s;
         }
+        .main-btn:hover { transform: translateY(-2px); box-shadow: 0 15px 25px rgba(255,0,0,0.3); }
 
-        /* كروت الإدارة */
         .agent-card { 
-            background: rgba(40, 40, 40, 0.6); border-radius: 25px; padding: 20px; 
-            margin-bottom: 15px; border-right: 5px solid var(--red);
+            background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+            border-radius: 20px; padding: 20px; margin-bottom: 15px;
         }
         .agent-header { display: flex; justify-content: space-between; align-items: center; }
-        .agent-name { font-weight: 800; font-size: 1.1rem; }
-        .id-badge { background: var(--red); color: #fff; padding: 4px 12px; border-radius: 10px; font-size: 0.8rem; font-weight: bold; }
-        
-        .team-title { font-size: 0.85rem; color: var(--red); font-weight: bold; margin: 15px 0 8px; }
+        .agent-name { font-weight: 600; font-size: 1.1rem; color: #eee; }
+        .id-badge { background: var(--red); padding: 4px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; }
+
+        .team-title { font-size: 0.85rem; color: var(--red); font-weight: bold; margin: 15px 0 10px; opacity: 0.8; }
         .member-box { 
-            display: flex; justify-content: space-between; background: rgba(0,0,0,0.4); 
-            padding: 14px; border-radius: 16px; margin-bottom: 6px; border: 1px solid #222;
+            display: flex; justify-content: space-between; background: rgba(0,0,0,0.3); 
+            padding: 12px; border-radius: 12px; margin-bottom: 8px; font-size: 0.9rem;
         }
-        .id-text { color: #888; font-size: 0.75rem; }
+        .id-text { color: #666; font-size: 0.8rem; }
 
-        .edit-toggle-btn { background: none; border: 1px solid #444; color: #aaa; width: 100%; padding: 10px; border-radius: 12px; cursor: pointer; margin-top: 10px; }
-        .edit-panel { display: none; padding-top: 15px; border-top: 1px solid #333; margin-top: 15px; }
+        .edit-btn { background: none; border: 1px solid #444; color: #888; width: 100%; padding: 10px; border-radius: 12px; margin-top: 15px; cursor: pointer; font-size: 0.85rem; }
+        .edit-panel { display: none; padding-top: 20px; border-top: 1px solid #333; margin-top: 15px; }
         .edit-panel.active { display: block; }
-        .save-small-btn { width: 100%; padding: 12px; background: #fff; color: #000; border-radius: 15px; font-weight: bold; margin-top: 10px; border: none; cursor: pointer; }
-        .del-small-btn { width: 100%; padding: 10px; background: none; border: 1px solid #f00; color: #f00; border-radius: 15px; margin-top: 10px; cursor: pointer; }
 
-        /* لوحة الوكيل */
-        .user-id-box { text-align: center; background: rgba(255,0,0,0.1); padding: 25px; border-radius: 25px; border: 1px dashed var(--red); }
-        .big-id { font-size: 2.8rem; font-weight: 900; color: var(--red); text-shadow: var(--red-glow); }
+        .save-btn { width: 100%; padding: 12px; background: #fff; color: #000; border: none; border-radius: 12px; font-weight: bold; margin-top: 10px; cursor: pointer; }
+        .del-btn { width: 100%; padding: 10px; background: none; border: 1px solid #ff3b3b; color: #ff3b3b; border-radius: 12px; margin-top: 10px; cursor: pointer; }
+
+        .user-id-box { text-align: center; background: linear-gradient(135deg, rgba(255,0,0,0.1), transparent); padding: 30px; border-radius: 20px; border: 1px solid rgba(255,0,0,0.2); }
+        .big-id { font-size: 3rem; font-weight: 900; color: var(--red); margin-top: 10px; }
 
         .hidden { display: none !important; }
-        label { font-size: 0.75rem; color: #999; margin-top: 12px; display: block; margin-right: 5px; }
+        label { font-size: 0.75rem; color: #777; margin-top: 15px; display: block; margin-right: 5px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="main-logo">HELMY CARD</div>
-    
-    <div id="hero-slider"></div>
 
     <div id="authPanel" class="glass-box">
         <div id="loginForm">
+            <h1>تسجيل دخول الوكلاء</h1>
             <input type="email" id="l_email" placeholder="البريد الإلكتروني">
             <input type="password" id="l_pass" placeholder="كلمة المرور">
-            <button class="main-btn" onclick="handleAuth('login')">تسجيل دخول</button>
-            <button style="background:none; border:none; color:#777; width:100%; margin-top:15px; cursor:pointer;" onclick="toggleAuthView()">إنشاء حساب وكيل جديد</button>
+            <button class="main-btn" onclick="handleAuth('login')">دخول</button>
+            <button style="background:none; border:none; color:#555; width:100%; margin-top:20px; cursor:pointer;" onclick="toggleAuthView()">إنشاء حساب وكيل جديد</button>
         </div>
+
         <div id="signupForm" class="hidden">
+            <h1>حساب وكيل جديد</h1>
             <input type="text" id="s_name" placeholder="الاسم الكامل">
             <input type="text" id="s_mycode" placeholder="ID الوكيل الخاص بك">
-            <input type="text" id="s_refcode" placeholder="ID الشخص الداعي">
+            <input type="text" id="s_refcode" placeholder="ID الداعي (إن وجد)">
             <input type="email" id="s_email" placeholder="البريد الإلكتروني">
             <input type="password" id="s_pass" placeholder="كلمة المرور">
-            <button class="main-btn" onclick="handleAuth('signup')">تأكيد التسجيل</button>
-            <button style="background:none; border:none; color:#777; width:100%; margin-top:15px; cursor:pointer;" onclick="toggleAuthView()">لديك حساب؟ سجل دخول</button>
+            <button class="main-btn" onclick="handleAuth('signup')">تسجيل</button>
+            <button style="background:none; border:none; color:#555; width:100%; margin-top:20px; cursor:pointer;" onclick="toggleAuthView()">لديك حساب؟ سجل دخول</button>
         </div>
     </div>
 
     <div id="mainDashboard" class="hidden">
         <div class="glass-box">
-            <h1 id="dashTitle" style="text-align:center; font-size:1.4rem; color:var(--red); margin-bottom:20px;">غرفة التحكم ✨</h1>
+            <h1 id="dashTitle">لوحة التحكم</h1>
             <div id="dashboardContent"></div>
-
-            <div id="adminSettings" class="hidden" style="margin-top:30px; border-top:1px solid #333; padding-top:20px;">
-                <h3 style="color:var(--red); font-size:1.1rem;">⚙️ تخصيص الواجهة (روابط)</h3>
-                
-                <label>رابط صورة للسلايدر:</label>
-                <input type="text" id="coverLink" placeholder="https://site.com/photo.jpg">
-                <button class="main-btn" style="padding:12px; font-size:0.9rem;" onclick="updateAppearance('cover')">إضافة كفر</button>
-
-                <label style="margin-top:15px;">رابط صورة الخلفية:</label>
-                <input type="text" id="bgLink" placeholder="https://site.com/wallpaper.jpg">
-                <button class="main-btn" style="padding:12px; font-size:0.9rem; background:#fff; color:#000;" onclick="updateAppearance('bg')">تحديث الخلفية</button>
-            </div>
-
-            <button class="main-btn" style="background:#222; margin-top:40px;" onclick="logout()">تسجيل خروج آمن</button>
+            <button class="main-btn" style="background:#111; border:1px solid #333; margin-top:30px;" onclick="logout()">خروج</button>
         </div>
     </div>
 </div>
