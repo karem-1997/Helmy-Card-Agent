@@ -50,10 +50,30 @@
                 authPanel.classList.add('hidden');
                 infoSection.classList.add('hidden');
                 mainDashboard.classList.remove('hidden');
-                if(user.email === ADMIN_EMAIL) { adminTools.classList.remove('hidden'); loadAdminData(); } 
+                if(user.email === ADMIN_EMAIL) { 
+                    adminTools.classList.remove('hidden'); 
+                    searchContainer.classList.remove('hidden');
+                    loadAdminData(); 
+                } 
                 else { loadUserData(user.uid); }
             }
         });
+
+        // دالة البحث الذكي
+        window.searchAgent = () => {
+            const val = agentSearchInput.value.trim();
+            const cards = document.querySelectorAll('.agent-card');
+            cards.forEach(card => {
+                const idText = card.getAttribute('data-id');
+                card.style.display = (idText === val || val === "") ? "block" : "none";
+            });
+            resetSearchBtn.classList.toggle('hidden', val === "");
+        };
+
+        window.resetSearch = () => {
+            agentSearchInput.value = "";
+            searchAgent();
+        };
 
         async function loadAdminData() {
             const sn = await getDocs(collection(db, "agents"));
@@ -61,10 +81,9 @@
             let html = "";
             allAgents.forEach(agent => {
                 if(agent.email === ADMIN_EMAIL) return;
-                // الفلترة الصحيحة: من دعاه هذا الوكيل فقط
                 const team = allAgents.filter(a => a.invitedBy === agent.agentCode && a.agentCode !== agent.agentCode);
                 html += `
-                <div class="agent-card">
+                <div class="agent-card" data-id="${agent.agentCode}">
                     <div class="agent-header">
                         <div style="display:flex; align-items:center; gap:10px;">
                            <span style="color:#3498db; font-size:1.5rem;">👤</span>
@@ -139,6 +158,10 @@
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .card { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 20px; border: 1px solid var(--border); font-size: 0.8rem; }
         .card b { color: var(--red); display: block; margin-bottom: 5px; }
+        /* ستايل البحث */
+        .search-box { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid #222; padding-bottom: 15px; }
+        .search-input { margin-top: 0; flex: 1; border-color: var(--red); }
+        .search-btn { background: var(--red); border: none; border-radius: 12px; color: #fff; padding: 0 15px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -175,6 +198,13 @@
     <div id="mainDashboard" class="hidden">
         <div class="glass-box">
             <h2 style="text-align:center; color:var(--red); margin-bottom:25px;">غرفة التحكم 🚀</h2>
+            
+            <div id="searchContainer" class="search-box hidden">
+                <input type="text" id="agentSearchInput" class="search-input" placeholder="ابحث بكود الوكيل (ID)...">
+                <button class="search-btn" onclick="searchAgent()">بحث 🔍</button>
+                <button id="resetSearchBtn" class="search-btn hidden" style="background:#333;" onclick="resetSearch()">عرض الكل</button>
+            </div>
+
             <div id="dashboardContent"></div>
             <div id="adminTools" class="hidden" style="margin-top:25px; border-top:1px solid #222; padding-top:20px;">
                 <label>تحديث رقم واتساب الدعم:</label>
